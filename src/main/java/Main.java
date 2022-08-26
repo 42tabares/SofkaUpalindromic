@@ -1,6 +1,8 @@
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -8,6 +10,9 @@ public class Main {
 
 
     public static void main(String[] args) {
+        String s = "Mr Owl ate my metal worm";
+        System.out.println(checkPalindrome(s));
+
         Scanner sc = new Scanner(System.in);
         System.out.println("Put in a series of words or sentences separated by |\n>");
         String stringSet=sc.nextLine();
@@ -16,23 +21,22 @@ public class Main {
 
     public static void palindroCheker(String stringSet){
 
-        //Adaptar a flux
-        List<String> separatedStrings = Arrays.stream(stringSet.split("\\|")).toList();
+        Flux<String> separatedStrings = Flux.fromIterable(Arrays.stream(stringSet.split("\\|")).toList());
 
-        Stream<String> words = separatedStrings.stream().filter(word -> word.split(" ").length == 1);
-        Stream<String> sentences = separatedStrings.stream().filter(word -> word.split(" ").length > 1);
+        Flux<String> words = separatedStrings.filter(word -> word.split(" ").length == 1);
+        Flux<String> sentences = separatedStrings.filter(word -> word.split(" ").length > 1);
 
-        List<String> palindroWords = words.filter(word -> reverse(word).equals(word)).toList();
-        List<String> palindroSentences = sentences.filter(sentence -> reverse(sentence).equals(sentence)).toList();
+        Predicate<String> isPalindrome = s -> checkPalindrome(s);
+        Flux<String> palindroWords = words.filter(isPalindrome);
+        Flux<String> palindroSentences = sentences.filter(isPalindrome);
 
-        long wordsNumber = separatedStrings.stream().filter(word -> word.split(" ").length == 1).count();
+        palindroWords.subscribe(word -> System.out.println("This is a palindromic word: " + palindromize(word)));
+        palindroSentences.subscribe(sentence -> System.out.println("This is a palindromic Sentence: " + palindromize(sentence)));
 
-        //subscribe -> with sout
         //check if last is CapsLock!
-        System.out.println("There are " + wordsNumber + " words");
-        System.out.println("There are " + (separatedStrings.size() - wordsNumber) + " sentences");
-        System.out.println("Palindromic words: " + palindroWords);
-        System.out.println("Palindromic sentences: " + palindroSentences);
+        System.out.println("There are " + words.toStream().count() + " words");
+        System.out.println("There are " + sentences.toStream().count()  + " sentences");
+
 
         /* Unused code but still pretty cool: collects into a map which key is the word and value is boolean if palindromic
         Map<String, Boolean> wordsCheck = words.collect(Collectors.toMap(word -> word, word -> reverse(word).equals(word)));
@@ -40,8 +44,13 @@ public class Main {
         */
     }
 
-    public static String reverse(String string){
-        String inverse = new StringBuilder(string).reverse().toString();
-        return inverse;
+    public static Boolean checkPalindrome(String string){
+        String adapted = string.toLowerCase().replace(" ","");
+        return new StringBuilder(adapted).reverse().toString().equals(adapted);
+    }
+
+    public static String palindromize(String string){
+        String adapted = string.replace(" ","");
+        return new StringBuilder(adapted).reverse().toString();
     }
 }
